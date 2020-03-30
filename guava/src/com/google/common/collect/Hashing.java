@@ -56,6 +56,12 @@ final class Hashing {
 
   private static final int MAX_TABLE_SIZE = Ints.MAX_POWER_OF_TWO;
 
+  /**
+   * 向下取整到2的整数倍
+   * @param expectedEntries
+   * @param loadFactor
+   * @return
+   */
   static int closedTableSize(int expectedEntries, double loadFactor) {
     // Get the recommended table size.
     // Round down to the nearest power of 2.

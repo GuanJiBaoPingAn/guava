@@ -25,6 +25,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 返回{@link ListenableFuture} 实例的{@link ExecutorService}
+ * 用已有的{@link ExecutorService} 创建调用{@link MoreExecutors#listeningDecorator(ExecutorService)}
+ *
  * An {@link ExecutorService} that returns {@link ListenableFuture} instances. To create an instance
  * from an existing {@link ExecutorService}, call {@link
  * MoreExecutors#listeningDecorator(ExecutorService)}.

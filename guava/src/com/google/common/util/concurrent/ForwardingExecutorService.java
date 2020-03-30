@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * 将调用转发至另一个executor service
  * An executor service which forwards all its method calls to another executor service. Subclasses
  * should override one or more methods to modify the behavior of the backing executor service as
  * desired per the <a href="http://en.wikipedia.org/wiki/Decorator_pattern">decorator pattern</a>.

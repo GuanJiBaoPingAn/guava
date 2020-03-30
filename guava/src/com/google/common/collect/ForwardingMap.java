@@ -27,6 +27,8 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 将所有方法的调用转发至另一个map。
+ *
  * A map which forwards all its method calls to another map. Subclasses should override one or more
  * methods to modify the behavior of the backing map as desired per the <a
  * href="http://en.wikipedia.org/wiki/Decorator_pattern">decorator pattern</a>.

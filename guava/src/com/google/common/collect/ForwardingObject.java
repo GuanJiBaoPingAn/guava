@@ -20,6 +20,7 @@ import com.google.common.annotations.GwtCompatible;
 import java.io.Serializable;
 
 /**
+ * 实现装饰器模式的抽象基类。{@link #delegate()} 必须重写并返回被装饰的实例。
  * An abstract base class for implementing the <a
  * href="http://en.wikipedia.org/wiki/Decorator_pattern">decorator pattern</a>. The {@link
  * #delegate()} method must be overridden to return the instance being decorated.

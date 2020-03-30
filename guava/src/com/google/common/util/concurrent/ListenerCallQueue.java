@@ -29,6 +29,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * 监听器列表，实现了并发友好的观察者对象
+ * <p>监听器通过调用{@link #addListener(Object, Executor)} 进行注册，调用{@link #enqueue(Event)} 入队，{@link #dispatch()} 广播
+ * 事件
+ *
  * A list of listeners for implementing a concurrency friendly observable object.
  *
  * <p>Listeners are registered once via {@link #addListener} and then may be invoked by {@linkplain
@@ -110,6 +114,7 @@ final class ListenerCallQueue<L> {
   }
 
   /**
+   * 广播所有入队的事件
    * Dispatches all events enqueued prior to this call, serially and in order, for every listener.
    *
    * <p>Note: this method is idempotent and safe to call from any thread
@@ -122,6 +127,7 @@ final class ListenerCallQueue<L> {
   }
 
   /**
+   * 特殊的队列，使用executor 广播事件，顺序广播事件
    * A special purpose queue/executor that dispatches listener events serially on a configured
    * executor. Each event event can be added and dispatched as separate phases.
    *
@@ -139,7 +145,7 @@ final class ListenerCallQueue<L> {
     final Queue<Object> labelQueue = Queues.newArrayDeque();
 
     @GuardedBy("this")
-    boolean isThreadScheduled;
+    boolean isThreadScheduled; // 线程是否在调度
 
     PerListenerQueue(L listener, Executor executor) {
       this.listener = checkNotNull(listener);
@@ -153,13 +159,14 @@ final class ListenerCallQueue<L> {
     }
 
     /**
+     * 根据入队顺序广播到所有监听器
      * Dispatches all listeners {@linkplain #enqueue enqueued} prior to this call, serially and in
      * order.
      */
     void dispatch() {
       boolean scheduleEventRunner = false;
       synchronized (this) {
-        if (!isThreadScheduled) {
+        if (!isThreadScheduled) { // 更新线程调度状态为true，并开始广播事件
           isThreadScheduled = true;
           scheduleEventRunner = true;
         }
@@ -193,7 +200,7 @@ final class ListenerCallQueue<L> {
             Preconditions.checkState(isThreadScheduled);
             nextToRun = waitQueue.poll();
             nextLabel = labelQueue.poll();
-            if (nextToRun == null) {
+            if (nextToRun == null) { // 等待队列中无任务时结束
               isThreadScheduled = false;
               stillRunning = false;
               break;

@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * 使用线程安全的操作来聚合future
  * A helper which does some thread-safe operations for aggregate futures, which must be implemented
  * differently in GWT. Namely:
  *
@@ -38,6 +39,7 @@ import java.util.logging.Logger;
 @GwtCompatible(emulated = true)
 @ReflectionSupport(value = ReflectionSupport.Level.FULL)
 abstract class AggregateFutureState<OutputT> extends AbstractFuture.TrustedFuture<OutputT> {
+  // 懒初始化直到第一次有异常。直到所有future 都完成才释放
   // Lazily initialized the first time we see an exception; not released until all the input futures
   // have completed and we have processed them all.
   private volatile Set<Throwable> seenExceptions = null;

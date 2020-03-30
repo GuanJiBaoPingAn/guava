@@ -25,7 +25,10 @@ import java.util.List;
 import java.util.concurrent.Future;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Aggregate future that collects (stores) results of each future. */
+/**
+ * 储存每一个future 值的聚合future
+ *
+ * Aggregate future that collects (stores) results of each future. */
 @GwtCompatible(emulated = true)
 abstract class CollectionFuture<V, C> extends AggregateFuture<V, C> {
   /*
@@ -97,7 +100,9 @@ abstract class CollectionFuture<V, C> extends AggregateFuture<V, C> {
     }
   }
 
-  /** The result of a successful {@code Future}. */
+  /**
+   * 执行成功的{@code Future} 的返回值
+   * The result of a successful {@code Future}. */
   private static final class Present<V> {
     V value;
 

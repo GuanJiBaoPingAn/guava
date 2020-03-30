@@ -44,6 +44,13 @@ import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * {@link ListenableFuture} 的抽象实现。更通用的方法创建{@link ListenableFuture}，包括实例化{@link SettableFuture}
+ * 提交到{@link ListeningExecutorService}，并且继承与{@code Future}。
+ *
+ * <p>该类实现了{@code ListenableFuture} 中的所有方法。子类需要使用{@link #set(Object)}, {@link #setFuture(ListenableFuture)}
+ * 和 {@link #setException(Throwable)} 来设置计算结果。子类需要重写{@link #afterDone()}，该方法会在执行完成时调用。其他方法一般
+ * 不需要重写。
+ *
  * An abstract implementation of {@link ListenableFuture}, intended for advanced users only. More
  * common ways to create a {@code ListenableFuture} include instantiating a {@link SettableFuture},
  * submitting a task to a {@link ListeningExecutorService}, and deriving a {@code Future} from an
@@ -69,6 +76,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     implements ListenableFuture<V> {
   // NOTE: Whenever both tests are cheap and functional, it's faster to use &, | instead of &&, ||
 
+  /** 是否生成取消原因 */
   private static final boolean GENERATE_CANCELLATION_CAUSES;
 
   static {
@@ -85,6 +93,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 用于标记受信任的子类。用于优化。该接口的实现必须同时实现AbstractFuture，并且不能重写和暴露任何ListenableFuture 的方法
    * Tag interface marking trusted subclasses. This enables some optimizations. The implementation
    * of this interface must also be an AbstractFuture and must not override or expose for overriding
    * any of the public methods of ListenableFuture.
@@ -92,6 +101,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   interface Trusted<V> extends ListenableFuture<V> {}
 
   /**
+   * 比AbstractFuture 更少抽象的子类。可用于优化
    * A less abstract subclass of AbstractFuture. This can be used to optimize setFuture by ensuring
    * that {@link #get} calls exactly the implementation of {@link AbstractFuture#get}.
    */
@@ -140,6 +150,10 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
 
   private static final AtomicHelper ATOMIC_HELPER;
 
+  /**
+   * 初始化{@link ATOMIC_HELPER} 的具体实现
+   * 首选{@link UnsafeAtomicHelper}、其次{@link SafeAtomicHelper}， 都不行的情况下使用{@link SynchronizedHelper}
+   */
   static {
     AtomicHelper helper;
     Throwable thrownUnsafeFailure = null;
@@ -185,8 +199,11 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** Waiter links form a Treiber stack, in the {@link #waiters} field. */
+  /** Waiter links form a Treiber stack, in the {@link #waiters} field.
+   * Treiber 栈（无锁栈，利用细粒度的并发原语CAS来实现）中的Waiter 节点
+   * */
   private static final class Waiter {
+    /* 墓碑，根节点 */
     static final Waiter TOMBSTONE = new Waiter(false /* ignored param */);
 
     volatile @Nullable Thread thread;
@@ -222,6 +239,12 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 将给定waiter 节点标记为删除，并将列表中所有被标记为删除节点取消关联。O(n)-O(n^2)
+   * <ul>
+   *   <li>只有当等待线程超时或中断时被调用。两者都少出现</li>
+   *   <li>waiter 列表应该是很短的</li>
+   * </ul>
+   *
    * Marks the given node as 'deleted' (null waiter) and then scans the list to unlink all deleted
    * nodes. This is an O(n) operation in the common case (and O(n^2) in the worst), but we are saved
    * by two things.
@@ -239,7 +262,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       Waiter pred = null;
       Waiter curr = waiters;
       if (curr == Waiter.TOMBSTONE) {
-        return; // give up if someone is calling complete
+        return; // give up if someone is calling complete 当前节点时根节点时直接返回
       }
       Waiter succ;
       while (curr != null) {
@@ -260,7 +283,9 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** Listeners also form a stack through the {@link #listeners} field. */
+  /**
+   * 监听器也通过{@link #listeners} 域组成栈
+   * Listeners also form a stack through the {@link #listeners} field. */
   private static final class Listener {
     static final Listener TOMBSTONE = new Listener(null, null);
     final Runnable task;
@@ -275,10 +300,14 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** A special value to represent {@code null}. */
+  /**
+   * 表示{@code null} 的特殊值
+   * A special value to represent {@code null}. */
   private static final Object NULL = new Object();
 
-  /** A special value to represent failure, when {@link #setException} is called successfully. */
+  /**
+   * 当{@link #setException} 成功调用时，表示失败的特殊值
+   * A special value to represent failure, when {@link #setException} is called successfully. */
   private static final class Failure {
     static final Failure FALLBACK_INSTANCE =
         new Failure(
@@ -295,11 +324,13 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** A special value to represent cancellation and the 'wasInterrupted' bit. */
+  /**
+   * 表示取消的特殊值
+   * A special value to represent cancellation and the 'wasInterrupted' bit. */
   private static final class Cancellation {
     // constants to use when GENERATE_CANCELLATION_CAUSES = false
-    static final Cancellation CAUSELESS_INTERRUPTED;
-    static final Cancellation CAUSELESS_CANCELLED;
+    static final Cancellation CAUSELESS_INTERRUPTED; // 中断取消
+    static final Cancellation CAUSELESS_CANCELLED; // 正常取消
 
     static {
       if (GENERATE_CANCELLATION_CAUSES) {
@@ -320,7 +351,9 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** A special value that encodes the 'setFuture' state. */
+  /**
+   * 表示setFuture 状态的特殊值
+   * A special value that encodes the 'setFuture' state. */
   private static final class SetFuture<V> implements Runnable {
     final AbstractFuture<V> owner;
     final ListenableFuture<? extends V> future;
@@ -414,28 +447,30 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     if (Thread.interrupted()) {
       throw new InterruptedException();
     }
-    Object localValue = value;
+    Object localValue = value; // 如果存在值则直接取出（任务已经完成）
     if (localValue != null & !(localValue instanceof SetFuture)) {
       return getDoneValue(localValue);
     }
     // we delay calling nanoTime until we know we will need to either park or spin
     final long endNanos = remainingNanos > 0 ? System.nanoTime() + remainingNanos : 0;
     long_wait_loop:
-    if (remainingNanos >= SPIN_THRESHOLD_NANOS) {
+    if (remainingNanos >= SPIN_THRESHOLD_NANOS) { // 等待时间大于自旋时间
       Waiter oldHead = waiters;
-      if (oldHead != Waiter.TOMBSTONE) {
+      if (oldHead != Waiter.TOMBSTONE) { // 存在等待节点
         Waiter node = new Waiter();
         do {
-          node.setNext(oldHead);
-          if (ATOMIC_HELPER.casWaiters(this, oldHead, node)) {
+          node.setNext(oldHead); // 将新节点置为头节点，并尝试更新
+          if (ATOMIC_HELPER.casWaiters(this, oldHead, node)) { // cas 更新成功
             while (true) {
               LockSupport.parkNanos(this, remainingNanos);
+              // 是否是中断导致park 结束，如果是则需要抛出异常
               // Check interruption first, if we woke up due to interruption we need to honor that.
               if (Thread.interrupted()) {
                 removeWaiter(node);
                 throw new InterruptedException();
               }
 
+              // park 正常结束，确定是否有结果
               // Otherwise re-read and check doneness. If we loop then it must have been a spurious
               // wakeup
               localValue = value;
@@ -453,14 +488,14 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
             }
           }
           oldHead = waiters; // re-read and loop.
-        } while (oldHead != Waiter.TOMBSTONE);
+        } while (oldHead != Waiter.TOMBSTONE); // 存在等待节点，一直循环
       }
       // re-read value, if we get here then we must have observed a TOMBSTONE while trying to add a
-      // waiter.
+      // waiter. 不存在等待节点，直接返回值
       return getDoneValue(value);
     }
     // If we get here then we have remainingNanos < SPIN_THRESHOLD_NANOS and there is no node on the
-    // waiters list
+    // waiters list 到达此处表示remainingNanos < SPIN_THRESHOLD_NANOS 且没有等待节点
     while (remainingNanos > 0) {
       localValue = value;
       if (localValue != null & !(localValue instanceof SetFuture)) {
@@ -520,16 +555,16 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     if (Thread.interrupted()) {
       throw new InterruptedException();
     }
-    Object localValue = value;
+    Object localValue = value; // 如果存在值则直接取出（任务已经完成）
     if (localValue != null & !(localValue instanceof SetFuture)) {
       return getDoneValue(localValue);
     }
     Waiter oldHead = waiters;
-    if (oldHead != Waiter.TOMBSTONE) {
+    if (oldHead != Waiter.TOMBSTONE) { // 存在等待节点
       Waiter node = new Waiter();
       do {
         node.setNext(oldHead);
-        if (ATOMIC_HELPER.casWaiters(this, oldHead, node)) {
+        if (ATOMIC_HELPER.casWaiters(this, oldHead, node)) { // cas futur更新成功
           // we are on the stack, now wait for completion.
           while (true) {
             LockSupport.park(this);
@@ -547,14 +582,16 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
           }
         }
         oldHead = waiters; // re-read and loop.
-      } while (oldHead != Waiter.TOMBSTONE);
+      } while (oldHead != Waiter.TOMBSTONE); // 存在等待节点，一直循环
     }
     // re-read value, if we get here then we must have observed a TOMBSTONE while trying to add a
-    // waiter.
+    // waiter. 不存在等待节点，直接返回值
     return getDoneValue(value);
   }
 
-  /** Unboxes {@code obj}. Assumes that obj is not {@code null} or a {@link SetFuture}. */
+  /**
+   * 解包{@code obj} 假定不是{@code null} 或 {@link SetFuture}
+   * Unboxes {@code obj}. Assumes that obj is not {@code null} or a {@link SetFuture}. */
   private V getDoneValue(Object obj) throws ExecutionException {
     // While this seems like it might be too branch-y, simple benchmarking proves it to be
     // unmeasurable (comparing done AbstractFutures with immediateFuture)
@@ -571,12 +608,20 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
+  /**
+   * 存在值{@link #value} 且不为{@link SetFuture}
+   * @return 若存在值表示完成，则返回{@code true}，反之，返回{@code false}
+   */
   @Override
   public boolean isDone() {
     final Object localValue = value;
     return localValue != null & !(localValue instanceof SetFuture);
   }
 
+  /**
+   * {@link #value} 是否为{@link Cancellation}
+   * @return 若为Cancellation 则返回{@code true}，反之，返回{@code false}
+   */
   @Override
   public boolean isCancelled() {
     final Object localValue = value;
@@ -601,7 +646,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   public boolean cancel(boolean mayInterruptIfRunning) {
     Object localValue = value;
     boolean rValue = false;
-    if (localValue == null | localValue instanceof SetFuture) {
+    if (localValue == null | localValue instanceof SetFuture) { // 未完成，或是SetFuture
       // Try to delay allocating the exception. At this point we may still lose the CAS, but it is
       // certainly less likely.
       Object valueToSet =
@@ -614,18 +659,21 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       AbstractFuture<?> abstractFuture = this;
       while (true) {
         if (ATOMIC_HELPER.casValue(abstractFuture, localValue, valueToSet)) {
-          rValue = true;
+          rValue = true; // 取消更新成功
           // We call interuptTask before calling complete(), which is consistent with
-          // FutureTask
+          // FutureTask 在complete() 之前调用interruptTask，与FutureTask 保持一致
           if (mayInterruptIfRunning) {
             abstractFuture.interruptTask();
           }
           complete(abstractFuture);
           if (localValue instanceof SetFuture) {
+            // 如果是SetFuture 则传播取消
             // propagate cancellation to the future set in setfuture, this is racy, and we don't
             // care if we are successful or not.
             ListenableFuture<?> futureToPropagateTo = ((SetFuture) localValue).future;
             if (futureToPropagateTo instanceof Trusted) {
+              // 如果是TrustedFuture 则避免调用cancel()，有两点好处
+              // 1. 通过SetFuture 形成的长链会消耗更少的栈 2.避免在链中分配Cancellation 对象
               // If the future is a TrustedFuture then we specifically avoid calling cancel()
               // this has 2 benefits
               // 1. for long chains of futures strung together with setFuture we consume less stack
@@ -660,6 +708,10 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 子类可重写该方法来实现future 计算时的中断。该方法在{@link #cancel(boolean)} 调用成功后会调用。
+   * <p>默认不做任何事
+   * <p>该方法即将过时。倾向重写{@link #afterDone}，先确定{@link #wasInterrupted}
+   *
    * Subclasses can override this method to implement interruption of the future's computation. The
    * method is invoked automatically by a successful call to {@link #cancel(boolean) cancel(true)}.
    *
@@ -673,6 +725,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   protected void interruptTask() {}
 
   /**
+   * 返回该future 是否被取消
    * Returns true if this future was cancelled with {@code mayInterruptIfRunning} set to {@code
    * true}.
    *
@@ -692,6 +745,9 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   public void addListener(Runnable listener, Executor executor) {
     checkNotNull(listener, "Runnable was null.");
     checkNotNull(executor, "Executor was null.");
+    /**
+     * 检查isDone 和listeners != TOMBSTONE 可能看起来多余，此处用于支持当任务完成时，立即调用监听器。
+     */
     // Checking isDone and listeners != TOMBSTONE may seem redundant, but our contract for
     // addListener says that listeners execute 'immediate' if the future isDone(). However, our
     // protocol for completing a future is to assign the value field (which sets isDone to true) and
@@ -715,11 +771,12 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       }
     }
     // If we get here then the Listener TOMBSTONE was set, which means the future is done, call
-    // the listener.
+    // the listener. 到达此处表示监听器只有根节点，表示任务已完成，立即调用监听器
     executeListener(listener, executor);
   }
 
   /**
+   * 设置{@code Future} 的返回值，除非被取消。当该方法返回时表明{@code Future} 已完成。
    * Sets the result of this {@code Future} unless this {@code Future} has already been cancelled or
    * set (including {@linkplain #setFuture set asynchronously}). When a call to this method returns,
    * the {@code Future} is guaranteed to be {@linkplain #isDone done} <b>only if</b> the call was
@@ -742,6 +799,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 将该{@code Future} 的异常设置为给定异常
    * Sets the failed result of this {@code Future} unless this {@code Future} has already been
    * cancelled or set (including {@linkplain #setFuture set asynchronously}). When a call to this
    * method returns, the {@code Future} is guaranteed to be {@linkplain #isDone done} <b>only if</b>
@@ -835,6 +893,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 返回给定future 的{@link #value} 域
    * Returns a value that satisfies the contract of the {@link #value} field based on the state of
    * given future.
    *
@@ -931,12 +990,16 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** Unblocks all threads and runs all listeners. */
+  /**
+   * 取消阻塞的线程并回调所有监听器
+   * Unblocks all threads and runs all listeners. */
   private static void complete(AbstractFuture<?> future) {
     Listener next = null;
     outer:
     while (true) {
       future.releaseWaiters();
+      // 在调用监听器前调用afterDone() 以避免分散栈数据。并且
+      // afterDone() 需要快且只是清理工作
       // We call this before the listeners in order to avoid needing to manage a separate stack data
       // structure for them.  Also, some implementations rely on this running prior to listeners
       // so that the cleanup work is visible to listeners.
@@ -946,12 +1009,14 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
       // push the current set of listeners onto next
       next = future.clearListeners(next);
       future = null;
-      while (next != null) {
+      while (next != null) { // 回调所有监听器
         Listener curr = next;
         next = next.next;
         Runnable task = curr.task;
         if (task instanceof SetFuture) {
           SetFuture<?> setFuture = (SetFuture<?>) task;
+          // 我们对SetFuture 特殊处理以避免StackOverflow
+          // 此处需要特殊处理，因为不能给SetFuture 传executor。
           // We unwind setFuture specifically to avoid StackOverflowErrors in the case of long
           // chains of SetFutures
           // Handling this special case is important because there is no way to pass an executor to
@@ -974,6 +1039,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * future 完成后只会被回调一次的方法
    * Callback method that is called exactly once after the future is completed.
    *
    * <p>If {@link #interruptTask} is also run during completion, {@link #afterDone} runs after it.
@@ -990,6 +1056,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
 
   // TODO(b/114236866): Inherit doc from InternalFutureFailureAccess. Also, -link to its URL.
   /**
+   * 一般返回{@code null}，但当{@code Future} 失败时可能返回失败原因
    * Usually returns {@code null} but, if this {@code Future} has failed, may <i>optionally</i>
    * return the cause of the failure. "Failure" means specifically "completed with an exception"; it
    * does not include "was cancelled." To be explicit: If this method returns a non-null value,
@@ -1021,6 +1088,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 如果该future 被取消则取消给定future
    * If this future has been cancelled (and possibly interrupted), cancels (and possibly interrupts)
    * the given future (if available).
    */
@@ -1030,7 +1098,9 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** Releases all threads in the {@link #waiters} list, and clears the list. */
+  /**
+   * 释放并清空{@link #waiters} 列表中的线程
+   * Releases all threads in the {@link #waiters} list, and clears the list. */
   private void releaseWaiters() {
     Waiter head;
     do {
@@ -1042,6 +1112,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 清理{@link #listeners} 列表，并置于{@code onto} 前，最近的监听器最先
    * Clears the {@link #listeners} list and prepends its contents to {@code onto}, least recently
    * added first.
    */
@@ -1166,6 +1237,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * 提交回调监听器任务至{@link Executor}
    * Submits the given runnable to the given {@link Executor} catching and logging all {@linkplain
    * RuntimeException runtime exceptions} thrown by the executor.
    */
@@ -1184,23 +1256,36 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   private abstract static class AtomicHelper {
-    /** Non volatile write of the thread to the {@link Waiter#thread} field. */
+    /** Non volatile write of the thread to the {@link Waiter#thread} field.
+     * 将给定线程写至{@link Waiter#thread} 域中
+     * */
     abstract void putThread(Waiter waiter, Thread newValue);
 
-    /** Non volatile write of the waiter to the {@link Waiter#next} field. */
+    /** Non volatile write of the waiter to the {@link Waiter#next} field.
+     * 将给定Waiter 写至{@link Waiter#next} 域中
+     * */
     abstract void putNext(Waiter waiter, Waiter newValue);
 
-    /** Performs a CAS operation on the {@link #waiters} field. */
+    /** Performs a CAS operation on the {@link #waiters} field.
+     * CAS 操作{@link #waiters} 域
+     * */
     abstract boolean casWaiters(AbstractFuture<?> future, Waiter expect, Waiter update);
 
-    /** Performs a CAS operation on the {@link #listeners} field. */
+    /** Performs a CAS operation on the {@link #listeners} field.
+     * CAS 操作{@link #listeners} 域
+     * */
     abstract boolean casListeners(AbstractFuture<?> future, Listener expect, Listener update);
 
-    /** Performs a CAS operation on the {@link #value} field. */
+    /** Performs a CAS operation on the {@link #value} field.
+     * CAS 操作{@link #value} 域
+     * */
     abstract boolean casValue(AbstractFuture<?> future, Object expect, Object update);
   }
 
   /**
+   * {@link AtomicHelper} 基于 {@link sun.misc.Unsafe} 的实现
+   * <p>如果{@link sun.misc.Unsafe} 不能操作，静态初始会失败
+   *
    * {@link AtomicHelper} based on {@link sun.misc.Unsafe}.
    *
    * <p>Static initialization of this class will fail if the {@link sun.misc.Unsafe} object cannot
@@ -1283,7 +1368,9 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
     }
   }
 
-  /** {@link AtomicHelper} based on {@link AtomicReferenceFieldUpdater}. */
+  /** {@link AtomicHelper} based on {@link AtomicReferenceFieldUpdater}.
+   *  {@link AtomicHelper} 基于 {@link AtomicReferenceFieldUpdater} 的实现
+   * */
   private static final class SafeAtomicHelper extends AtomicHelper {
     final AtomicReferenceFieldUpdater<Waiter, Thread> waiterThreadUpdater;
     final AtomicReferenceFieldUpdater<Waiter, Waiter> waiterNextUpdater;
@@ -1331,6 +1418,7 @@ public abstract class AbstractFuture<V> extends InternalFutureFailureAccess
   }
 
   /**
+   * {@link AtomicHelper} 基于 {@code synchronized} 的实现
    * {@link AtomicHelper} based on {@code synchronized} and volatile writes.
    *
    * <p>This is an implementation of last resort for when certain basic VM features are broken (like

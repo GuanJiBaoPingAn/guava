@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * webserver RPC timer 的服务抽象
  * An object with an operational state, plus asynchronous {@link #startAsync()} and {@link
  * #stopAsync()} lifecycle methods to transition between states. Example services include
  * webservers, RPC servers and timers.
@@ -197,6 +198,7 @@ public interface Service {
   void addListener(Listener listener, Executor executor);
 
   /**
+   * 服务的生命周期状态
    * The lifecycle states of a service.
    *
    * <p>The ordering of the {@link State} enum is defined such that if there is a state transition
@@ -267,6 +269,7 @@ public interface Service {
   }
 
   /**
+   * 一个{@link Service} 服务生命周期变化的监听器
    * A listener for the various state changes that a {@link Service} goes through in its lifecycle.
    *
    * <p>All methods are no-ops by default, implementors should override the ones they care about.
@@ -277,6 +280,7 @@ public interface Service {
   @Beta // should come out of Beta when Service does
   abstract class Listener {
     /**
+     * 当从{@linkplain State#NEW NEW} 变为 {@linkplain State#STARTING STARTING} 时调用
      * Called when the service transitions from {@linkplain State#NEW NEW} to {@linkplain
      * State#STARTING STARTING}. This occurs when {@link Service#startAsync} is called the first
      * time.
@@ -284,12 +288,14 @@ public interface Service {
     public void starting() {}
 
     /**
+     * 当从{@linkplain State#STARTING STARTING} 变为 {@linkplain State#RUNNING RUNNING} 时调用
      * Called when the service transitions from {@linkplain State#STARTING STARTING} to {@linkplain
      * State#RUNNING RUNNING}. This occurs when a service has successfully started.
      */
     public void running() {}
 
     /**
+     * 当变为 {@linkplain State#STOPPING STOPPING} 时调用
      * Called when the service transitions to the {@linkplain State#STOPPING STOPPING} state. The
      * only valid values for {@code from} are {@linkplain State#STARTING STARTING} or {@linkplain
      * State#RUNNING RUNNING}. This occurs when {@link Service#stopAsync} is called.
@@ -299,6 +305,7 @@ public interface Service {
     public void stopping(State from) {}
 
     /**
+     * 当变为 {@linkplain State#TERMINATED TERMINATED} 时调用
      * Called when the service transitions to the {@linkplain State#TERMINATED TERMINATED} state.
      * The {@linkplain State#TERMINATED TERMINATED} state is a terminal state in the transition
      * diagram. Therefore, if this method is called, no other methods will be called on the {@link
@@ -311,6 +318,7 @@ public interface Service {
     public void terminated(State from) {}
 
     /**
+     * 当变为 {@linkplain State#FAILED FAILED} 时调用
      * Called when the service transitions to the {@linkplain State#FAILED FAILED} state. The
      * {@linkplain State#FAILED FAILED} state is a terminal state in the transition diagram.
      * Therefore, if this method is called, no other methods will be called on the {@link Listener}.

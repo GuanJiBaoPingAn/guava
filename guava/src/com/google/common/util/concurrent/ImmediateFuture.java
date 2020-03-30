@@ -25,7 +25,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Implementation of {@link Futures#immediateFuture}. */
+/**
+ * {@link Futures#immediateFuture} 的实现
+ * Implementation of {@link Futures#immediateFuture}. */
 @GwtCompatible
 // TODO(cpovirk): Make this final (but that may break Mockito spy calls).
 class ImmediateFuture<V> implements ListenableFuture<V> {

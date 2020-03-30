@@ -20,6 +20,26 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 
 /**
+ * 用于接收{@link Future} 的结束监听器。每个监听器和executor 关联，当{@linkplain Future#isDone() 结束时调用}，
+ * 如果当监听器添加时已经完成则立刻执行。
+ * <h3>目的</h3>
+ * {@code ListenableFuture} 的主要目的是串联异步操作。
+ * {@link #addListener addListener} 的主要目的是支持串联操作。一般不会直接使用，因为它不提供{@code Future} 的结果。
+ * （如果你需要使用，推荐{@link Futures#addCallback}）
+ *
+ * 如何创建实例：
+ * 我们推荐你在方法中返回{@code ListenableFuture} 以便使用{@linkplain Futures 工具类}
+ * <ul>
+ *   <li>
+ *     如果从{@code java.util.concurrent.ExecutorService} 获取，转换为{@link ListeningExecutorService}，一般
+ *     通过调用{@link MoreExecutors#listeningDecorator(java.util.concurrent.ExecutorService)}
+ *   </li>
+ *   <li>
+ *     如果手动调用{@link java.util.concurrent.FutureTask#set} 或相似方法，则创建{@link SettableFuture}，如果
+ *     更复杂则使用{@link AbstractFuture}
+ *   </li>
+ * </ul>
+ *
  * A {@link Future} that accepts completion listeners. Each listener has an associated executor, and
  * it is invoked using this executor once the future's computation is {@linkplain Future#isDone()
  * complete}. If the computation has already completed when the listener is added, the listener will
@@ -102,6 +122,25 @@ import java.util.concurrent.RejectedExecutionException;
 @DoNotMock("Use the methods in Futures (like immediateFuture) or SettableFuture")
 public interface ListenableFuture<V> extends Future<V> {
   /**
+   * 对给定executor 用{@linkplain Executor#execute(Runnable) run} 的方式，注册一个监听器。当
+   * {@linkplain Future#isDone() 结束时调用}，如果当监听器添加时已经完成则立刻执行。
+   *
+   * <p>不保证监听器执行的顺序，但保证当计算完成时一定会调用一次。
+   *
+   * <p>监听器抛出异常会传播到executor。任何在{@code Executor.execute} 执行过程中抛出的异常会被捕捉和记录。
+   *
+   * <p>备注：快速轻量的监听器，推荐{@link MoreExecutors#directExecutor}。其他的避免使用。重量级监听器在使用
+   * {@code directExecutor} 时会造成问题且不易复现。例，
+   * <ul>
+   *   <li>如果调用者是时延敏感（如UI 相关线程），则会影响响应性</li>
+   *   <li>主线程用于处理该监听器而导致系统整体卡死</li>
+   *   <li>该监听器可能会使其他监听器（即使他们不是{@code directExecutor} 的监听器）延迟</li>
+   * </ul>
+   * <p>该接口为最通用监听器接口。常用监听器操作见{@link Futures}。简化且通用的监听器接口见
+   * {@link Futures#addCallback}
+   *
+   *
+   *
    * Registers a listener to be {@linkplain Executor#execute(Runnable) run} on the given executor.
    * The listener will run when the {@code Future}'s computation is {@linkplain Future#isDone()
    * complete} or, if the computation is already complete, immediately.

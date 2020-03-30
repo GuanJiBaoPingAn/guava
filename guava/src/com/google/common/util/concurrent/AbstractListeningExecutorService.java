@@ -23,6 +23,7 @@ import java.util.concurrent.RunnableFuture;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * {@link ListeningExecutorService} 的抽象实现。
  * Abstract {@link ListeningExecutorService} implementation that creates {@link ListenableFuture}
  * instances for each {@link Runnable} and {@link Callable} submitted to it. These tasks are run
  * with the abstract {@link #execute execute(Runnable)} method.

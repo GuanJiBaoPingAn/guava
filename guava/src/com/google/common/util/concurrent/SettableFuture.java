@@ -19,6 +19,11 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * {@link ListenableFuture} 的结果可以通过 {@link #set(Object)}, {@link #setException(Throwable)}
+ * 或 {@link #setFuture(ListenableFuture)} 调用得到。
+ * <p>当你的任务不能用{@link ListeningExecutorService}实现，那么{@code SettableFuture} 是推荐的{@code ListenableFuture} 实现，
+ *
+ *
  * A {@link ListenableFuture} whose result can be set by a {@link #set(Object)}, {@link
  * #setException(Throwable)} or {@link #setFuture(ListenableFuture)} call. It can also, like any
  * other {@code Future}, be {@linkplain #cancel cancelled}.

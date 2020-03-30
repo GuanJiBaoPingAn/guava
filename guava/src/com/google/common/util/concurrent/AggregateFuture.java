@@ -33,6 +33,7 @@ import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 一个future 的值来自future 集合
  * A future whose value is derived from a collection of input futures.
  *
  * @param <InputT> the type of the individual inputs
@@ -43,6 +44,9 @@ abstract class AggregateFuture<InputT, OutputT> extends AggregateFutureState<Out
   private static final Logger logger = Logger.getLogger(AggregateFuture.class.getName());
 
   /**
+   * 输入的future。在{@link #init} 调用后，该域只通过{@link #afterDone()} 读。获取future 的值，{@code AggregateFuture} 使用
+   * 监听器持有输入future 的引用。{@link CombinedFuture} 的情况，用户提供的回调通常有输入future 的引用。
+   *
    * The input futures. After {@link #init}, this field is read only by {@link #afterDone()} (to
    * propagate cancellation) and {@link #toString()}. To access the futures' <i>values</i>, {@code
    * AggregateFuture} attaches listeners that hold references to one or more inputs. And in the case
@@ -54,8 +58,8 @@ abstract class AggregateFuture<InputT, OutputT> extends AggregateFutureState<Out
    */
   private @Nullable ImmutableCollection<? extends ListenableFuture<? extends InputT>> futures;
 
-  private final boolean allMustSucceed;
-  private final boolean collectsValues;
+  private final boolean allMustSucceed; // 所有的future 都需要成功
+  private final boolean collectsValues; // 是否收集值
 
   AggregateFuture(
       ImmutableCollection<? extends ListenableFuture<? extends InputT>> futures,
@@ -96,6 +100,10 @@ abstract class AggregateFuture<InputT, OutputT> extends AggregateFutureState<Out
   }
 
   /**
+   * 必须在子类构造函数的结束后调用。该方法实现真正的初始化；不能放入构造函数，因为在future 已经完成的情况下，
+   * 我们不能在初始化子类前调用{@link #collectValueFromNonCancelledFuture}。该方法在子类构造完成后调用，
+   * 我们需要保证子类的充分初始化
+   *
    * Must be called at the end of each subclass's constructor. This method performs the "real"
    * initialization; we can't put this in the constructor because, in the case where futures are
    * already complete, we would not initialize the subclass before calling {@link
@@ -183,6 +191,7 @@ abstract class AggregateFuture<InputT, OutputT> extends AggregateFutureState<Out
   }
 
   /**
+   * 当{@link #allMustSucceed} 为{@code true} 时，将该{@code future} 设置异常为给定值。
    * Fails this future with the given Throwable if {@link #allMustSucceed} is true. Also, logs the
    * throwable if it is an {@link Error} or if {@link #allMustSucceed} is {@code true}, the
    * throwable did not cause this future to fail, and it is the first time we've seen that

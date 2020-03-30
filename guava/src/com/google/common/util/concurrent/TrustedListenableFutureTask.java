@@ -24,6 +24,7 @@ import java.util.concurrent.RunnableFuture;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 实现了{@link RunnableFuture} 和{@link ListenableFuture} 的类。
  * A {@link RunnableFuture} that also implements the {@link ListenableFuture} interface.
  *
  * <p>This should be used in preference to {@link ListenableFutureTask} when possible for

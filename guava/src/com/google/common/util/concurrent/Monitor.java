@@ -30,6 +30,8 @@ import java.util.function.BooleanSupplier;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 该类用于替代{@link ReentrantLock}。
+ *
  * A synchronization abstraction supporting waiting on arbitrary boolean conditions.
  *
  * <p>This class is intended as a replacement for {@link ReentrantLock}. Code using {@code Monitor}

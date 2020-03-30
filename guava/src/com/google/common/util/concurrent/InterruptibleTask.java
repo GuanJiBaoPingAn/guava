@@ -50,7 +50,8 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
   @SuppressWarnings("ThreadPriorityCheck") // The cow told me to
   @Override
   public final void run() {
-    /*
+    /**
+     * 在检查isDone 之前设置runner。如果先检查，则任务可能在设置前被取消。
      * Set runner thread before checking isDone(). If we were to check isDone() first, the task
      * might be cancelled before we set the runner thread. That would make it impossible to
      * interrupt, yet it will still run, since interruptTask will leave the runner value null,
@@ -71,8 +72,13 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
     } catch (Throwable t) {
       error = t;
     } finally {
+      // 将任务状态尽快设置为DONE 的状态，使中断操作会失败
       // Attempt to set the task as done so that further attempts to interrupt will fail.
       if (!compareAndSet(currentThread, DONE)) {
+        /**
+         * 如果中断了，可能中断的状态位还没有被设置。等待中断线程设置为DONE.
+         * 注：我们不重设中断状态位，只等待被设置。如果是线程池的线程，线程池会为我们重设。
+         */
         // If we were interrupted, it is possible that the interrupted bit hasn't been set yet. Wait
         // for the interrupting thread to set DONE. See interruptTask().
         // We want to wait so that we don't interrupt the _next_ thing run on the thread.
@@ -154,15 +160,18 @@ abstract class InterruptibleTask<T> extends AtomicReference<Runnable> implements
   abstract void afterRanInterruptibly(@Nullable T result, @Nullable Throwable error);
 
   /**
+   * 中断该任务。因为内部使用了{@link Thread#interrupt()} 当持有锁时调用不安全
    * Interrupts the running task. Because this internally calls {@link Thread#interrupt()} which can
    * in turn invoke arbitrary code it is not safe to call while holding a lock.
    */
   final void interruptTask() {
+    // 任务在实际运行回调监听器前先设置为了DONE，如果CAS 成功中断错误的线程或没有在运行该任务的线程没有风险
     // Since the Thread is replaced by DONE before run() invokes listeners or returns, if we succeed
     // in this CAS, there's no risk of interrupting the wrong thread or interrupting a thread that
     // isn't currently executing this task.
     Runnable currentRunner = get();
     if (currentRunner instanceof Thread && compareAndSet(currentRunner, INTERRUPTING)) {
+      // Thread.interrupt 会抛出任意异常，
       // Thread.interrupt can throw aribitrary exceptions due to the nio InterruptibleChannel API
       // This will make sure that tasks don't get stuck busy waiting.
       // Some of this is fixed in jdk11 (see https://bugs.openjdk.java.net/browse/JDK-8198692) but

@@ -51,6 +51,7 @@ import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 同步集合视图。
  * Synchronized collection views. The returned synchronized collection views are serializable if the
  * backing collection and the mutex are serializable.
  *
@@ -67,8 +68,8 @@ final class Synchronized {
   private Synchronized() {}
 
   static class SynchronizedObject implements Serializable {
-    final Object delegate;
-    final Object mutex;
+    final Object delegate; // 代理对象
+    final Object mutex; // 对象锁
 
     SynchronizedObject(Object delegate, @Nullable Object mutex) {
       this.delegate = checkNotNull(delegate);

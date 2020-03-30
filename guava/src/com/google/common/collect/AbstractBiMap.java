@@ -38,6 +38,7 @@ import java.util.function.BiFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 通用双向map 实现，使用两个{@code Map} 实例。
  * A general-purpose bimap implementation using any two backing {@code Map} instances.
  *
  * <p>Note that this class contains {@code equals()} calls that keep it from supporting {@code
@@ -69,13 +70,17 @@ abstract class AbstractBiMap<K, V> extends ForwardingMap<K, V>
     return delegate;
   }
 
-  /** Returns its input, or throws an exception if this is not a valid key. */
+  /**
+   * 返回输入键，如果不是有效键则抛出异常
+   * Returns its input, or throws an exception if this is not a valid key. */
   @CanIgnoreReturnValue
   K checkKey(@Nullable K key) {
     return key;
   }
 
-  /** Returns its input, or throws an exception if this is not a valid value. */
+  /**
+   * 返回输入值，如果不是有效值则抛出异常
+   * Returns its input, or throws an exception if this is not a valid value. */
   @CanIgnoreReturnValue
   V checkValue(@Nullable V value) {
     return value;

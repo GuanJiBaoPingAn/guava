@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * {@link Future} 的工具类
  * Static utility methods pertaining to the {@link Future} interface.
  *
  * <p>Many of these methods use the {@link ListenableFuture} API; consult the Guava User Guide
@@ -75,6 +76,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @GwtCompatible(emulated = true)
 public final class Futures extends GwtFuturesCatchingSpecialization {
 
+  /**
+   * 内存可见性备注：
+   * 该类中的许多方法（transform, withFallback, withTimeout, asList, combine）需要两个条件
+   * 1.取消需要从返回的future 传播至输入future
+   * 2.返回的future 需要在完成后固定
+   * 以上两个需求的结构，代理future 不能存储在final 的域
+   *
+   *
+   *
+   */
   // A note on memory visibility.
   // Many of the utilities in this class (transform, withFallback, withTimeout, asList, combine)
   // have two requirements that significantly complicate their design.
@@ -123,6 +134,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   private Futures() {}
 
   /**
+   * 创建一个有值的{@code ListenableFuture}。该{@code Future} 不能取消或超时。
    * Creates a {@code ListenableFuture} which has its value set immediately upon construction. The
    * getters just return the value. This {@code Future} can't be canceled or timed out and its
    * {@code isDone()} method always returns {@code true}.
@@ -138,6 +150,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 创建一个有异常的{@code ListenableFuture}。该{@code Future} 不能取消。
    * Returns a {@code ListenableFuture} which has an exception set immediately upon construction.
    *
    * <p>The returned {@code Future} can't be cancelled, and its {@code isDone()} method always
@@ -150,6 +163,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 创建一个被取消的{@code ListenableFuture}
    * Creates a {@code ListenableFuture} which is cancelled immediately upon construction, so that
    * {@code isCancelled()} always returns {@code true}.
    *
@@ -160,6 +174,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 对给定{@code executor} 提交给定的{@code callable}
    * Executes {@code callable} on the specified {@code executor}, returning a {@code Future}.
    *
    * @throws RejectedExecutionException if the task cannot be scheduled for execution
@@ -173,6 +188,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 对给定{@code executor} 提交给定的{@code runnable}
    * Executes {@code runnable} on the specified {@code executor}, returning a {@code Future} that
    * will complete after execution.
    *
@@ -187,6 +203,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 与{@link Futures#submit(Callable, Executor)} 一致
    * Executes {@code callable} on the specified {@code executor}, returning a {@code Future}.
    *
    * @throws RejectedExecutionException if the task cannot be scheduled for execution
@@ -200,6 +217,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 对给定{@code executor} 提交给定时任务
    * Schedules {@code callable} on the specified {@code executor}, returning a {@code Future}.
    *
    * @throws RejectedExecutionException if the task cannot be scheduled for execution
@@ -213,6 +231,7 @@ public final class Futures extends GwtFuturesCatchingSpecialization {
   }
 
   /**
+   * 对给定{@code executor} 提交给定时任务
    * Schedules {@code callable} on the specified {@code executor}, returning a {@code Future}.
    *
    * @throws RejectedExecutionException if the task cannot be scheduled for execution

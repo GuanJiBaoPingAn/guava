@@ -23,6 +23,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 双向map
  * A bimap (or "bidirectional map") is a map that preserves the uniqueness of its values as well as
  * that of its keys. This constraint enables bimaps to support an "inverse view", which is another
  * bimap containing the same entries as this bimap but with reversed keys and values.
@@ -95,6 +96,7 @@ public interface BiMap<K, V> extends Map<K, V> {
   Set<V> values();
 
   /**
+   * 返回该map 的反向视图
    * Returns the inverse view of this bimap, which maps each of this bimap's values to its
    * associated key. The two bimaps are backed by the same data; any changes to one will appear in
    * the other.

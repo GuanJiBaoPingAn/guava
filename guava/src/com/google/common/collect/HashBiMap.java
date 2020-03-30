@@ -43,6 +43,7 @@ import java.util.function.BiFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 内部存储两个hash 表的{@link BiMap} 实现
  * A {@link BiMap} backed by two hash tables. This implementation allows null keys and values. A
  * {@code HashBiMap} and its inverse are both serializable.
  *

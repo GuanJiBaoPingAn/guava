@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * {@link java.util.concurrent.Executor}, {@link ExecutorService}, 和{@link ThreadFactory} 的工具方法
  * Factory and utility methods for {@link java.util.concurrent.Executor}, {@link ExecutorService},
  * and {@link ThreadFactory}.
  *
@@ -67,6 +68,7 @@ public final class MoreExecutors {
   private MoreExecutors() {}
 
   /**
+   * 将给定的ThreadPoolExecutor 转换为当应用结束时关闭
    * Converts the given ThreadPoolExecutor into an ExecutorService that exits when the application
    * is complete. It does so by using daemon threads and adding a shutdown hook to wait for their
    * completion.
@@ -226,7 +228,9 @@ public final class MoreExecutors {
     new Application().addDelayedShutdownHook(service, terminationTimeout, timeUnit);
   }
 
-  /** Represents the current application to register shutdown hooks. */
+  /**
+   * 代表当前应用，用于注册关闭的钩子
+   * Represents the current application to register shutdown hooks. */
   @GwtIncompatible // TODO
   @VisibleForTesting
   static class Application {
@@ -302,7 +306,8 @@ public final class MoreExecutors {
     /** Lock used whenever accessing the state variables (runningTasks, shutdown) of the executor */
     private final Object lock = new Object();
 
-    /*
+    /**
+     * 以下两个变量表示状态
      * Conceptually, these two variables describe the executor being in
      * one of three states:
      *   - Active: shutdown == false
@@ -375,6 +380,7 @@ public final class MoreExecutors {
     }
 
     /**
+     * 检查该executor 是否是关闭状态
      * Checks if the executor has been shut down and increments the running task count.
      *
      * @throws RejectedExecutionException if the executor has been previously shutdown

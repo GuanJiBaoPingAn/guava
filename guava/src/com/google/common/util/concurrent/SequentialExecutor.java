@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * 该executor 保证所有被提交的任务按顺序执行
  * Executor ensuring that all Runnables submitted are executed in order, using the provided
  * Executor, and sequentially such that no two will ever be running at the same time.
  *
@@ -51,11 +52,11 @@ final class SequentialExecutor implements Executor {
   private static final Logger log = Logger.getLogger(SequentialExecutor.class.getName());
 
   enum WorkerRunningState {
-    /** Runnable is not running and not queued for execution */
+    /** Runnable is not running and not queued for execution 未在执行，且未入队 */
     IDLE,
-    /** Runnable is not running, but is being queued for execution */
+    /** Runnable is not running, but is being queued for execution 未在执行，但已入队 */
     QUEUING,
-    /** runnable has been submitted but has not yet begun execution */
+    /** runnable has been submitted but has not yet begun execution 任务已提交，尚未执行 */
     QUEUED,
     RUNNING,
   }

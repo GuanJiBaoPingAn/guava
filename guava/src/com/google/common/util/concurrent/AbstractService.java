@@ -38,6 +38,7 @@ import java.util.concurrent.TimeoutException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 能处理{@link #doStart()} {@link #doStop()} 的基类
  * Base class for implementing services that can handle {@link #doStart} and {@link #doStop}
  * requests, responding to them with {@link #notifyStarted()} and {@link #notifyStopped()}
  * callbacks. Its subclasses must manage threads manually; consider {@link

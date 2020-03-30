@@ -19,6 +19,7 @@ import com.google.common.annotations.GwtCompatible;
 import java.util.concurrent.Future;
 
 /**
+ * 计算一个值，可能异步。
  * Computes a value, possibly asynchronously. For an example usage and more information, see {@link
  * Futures.FutureCombiner#callAsync(AsyncCallable, java.util.concurrent.Executor)}.
  *

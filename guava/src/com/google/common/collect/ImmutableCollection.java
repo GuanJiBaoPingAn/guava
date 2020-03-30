@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * {@link Collection} 不可变集合。
  * A {@link Collection} whose contents will never change, and which offers a few additional
  * guarantees detailed below.
  *

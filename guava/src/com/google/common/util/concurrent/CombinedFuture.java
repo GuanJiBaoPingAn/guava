@@ -27,7 +27,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Aggregate future that computes its value by calling a callable. */
+/**
+ * 聚合future，通过调用callable 来计算值
+ * Aggregate future that computes its value by calling a callable. */
 @GwtCompatible
 final class CombinedFuture<V> extends AggregateFuture<Object, V> {
   private CombinedFutureInterruptibleTask<?> task;

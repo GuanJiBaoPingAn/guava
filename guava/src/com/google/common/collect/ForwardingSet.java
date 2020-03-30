@@ -24,6 +24,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
+ * 一个将所有方法调用转发到其他集合的集合。
  * A set which forwards all its method calls to another set. Subclasses should override one or more
  * methods to modify the behavior of the backing set as desired per the <a
  * href="http://en.wikipedia.org/wiki/Decorator_pattern">decorator pattern</a>.

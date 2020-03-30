@@ -28,7 +28,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Implementations of {@code Futures.catching*}. */
+/**
+ * {@code Futures.catching*} 的实现
+ * Implementations of {@code Futures.catching*}. */
 @GwtCompatible
 abstract class AbstractCatchingFuture<V, X extends Throwable, F, T>
     extends FluentFuture.TrustedFuture<V> implements Runnable {
